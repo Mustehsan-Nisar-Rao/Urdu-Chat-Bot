@@ -29,26 +29,36 @@ st.markdown("""
         text-align: right;
     }
     .user-message {
-        background-color: #e3f2fd;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
         padding: 12px 18px;
-        border-radius: 18px;
+        border-radius: 18px 18px 0px 18px;
         margin: 8px 0;
-        border: 1px solid #90caf9;
         max-width: 70%;
         margin-left: auto;
         margin-right: 0;
         direction: rtl;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        position: relative;
     }
     .bot-message {
-        background-color: #f5f5f5;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
         padding: 12px 18px;
-        border-radius: 18px;
+        border-radius: 18px 18px 18px 0px;
         margin: 8px 0;
-        border: 1px solid #e0e0e0;
         max-width: 70%;
         margin-right: auto;
         margin-left: 0;
         direction: rtl;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        position: relative;
+    }
+    .message-time {
+        font-size: 0.7rem;
+        opacity: 0.8;
+        margin-top: 5px;
+        text-align: left;
     }
     .chat-container {
         height: 500px;
@@ -57,26 +67,69 @@ st.markdown("""
         border: 2px solid #e0e0e0;
         border-radius: 15px;
         margin-bottom: 20px;
-        background-color: #fafafa;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         direction: rtl;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+    }
+    .chat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 15px 15px 0 0;
+        text-align: center;
+        margin: -20px -20px 20px -20px;
+        font-weight: bold;
+        font-size: 1.2rem;
     }
     .stButton button {
         border-radius: 20px;
         height: 2.8rem;
         font-size: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    .stButton button:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        color: white;
     }
     .sample-question {
-        background-color: #f0f8ff;
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
         border: 1px solid #b3d9ff;
-        border-radius: 10px;
-        padding: 8px 12px;
+        border-radius: 15px;
+        padding: 10px 15px;
         margin: 5px;
         cursor: pointer;
         text-align: center;
         direction: rtl;
+        transition: all 0.3s ease;
     }
     .sample-question:hover {
-        background-color: #e6f2ff;
+        background: linear-gradient(135deg, #fed6e3 0%, #a8edea 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .input-box {
+        background: white;
+        border: 2px solid #667eea;
+        border-radius: 25px;
+        padding: 10px 20px;
+        margin-top: 10px;
+    }
+    /* Scrollbar styling */
+    .chat-container::-webkit-scrollbar {
+        width: 8px;
+    }
+    .chat-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    .chat-container::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+    }
+    .chat-container::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -126,14 +179,32 @@ def generate_response(user_input):
     else:
         return "ماڈل لوڈ نہیں ہوا۔ براہ کرم ریفریش کریں۔"
 
-def display_chat_message(role, message):
-    """Display a chat message"""
+def get_current_time():
+    """Get current time in HH:MM format"""
+    return time.strftime("%H:%M")
+
+def display_chat_message(role, message, message_time):
+    """Display a chat message with timestamp"""
     if role == "user":
-        st.markdown(f'<div class="user-message urdu-text"><b>آپ:</b> {message}</div>', 
-                   unsafe_allow_html=True)
+        st.markdown(
+            f'''
+            <div class="user-message urdu-text">
+                <div>{message}</div>
+                <div class="message-time">{message_time}</div>
+            </div>
+            ''', 
+            unsafe_allow_html=True
+        )
     else:
-        st.markdown(f'<div class="bot-message urdu-text"><b>بوٹ:</b> {message}</div>', 
-                   unsafe_allow_html=True)
+        st.markdown(
+            f'''
+            <div class="bot-message urdu-text">
+                <div>{message}</div>
+                <div class="message-time">{message_time}</div>
+            </div>
+            ''', 
+            unsafe_allow_html=True
+        )
 
 def handle_suggested_question(question):
     """Handle when a suggested question is clicked"""
@@ -145,12 +216,22 @@ def process_auto_send():
     """Process auto-send when suggested question is clicked"""
     if st.session_state.auto_send and st.session_state.suggested_text:
         user_input = st.session_state.suggested_text
-        # Add user message to chat history
-        st.session_state.chat_history.append(("user", user_input))
+        current_time = get_current_time()
         
-        # Generate and add bot response
+        # Add user message to chat history with timestamp
+        st.session_state.chat_history.append({
+            "role": "user", 
+            "message": user_input, 
+            "time": current_time
+        })
+        
+        # Generate and add bot response with timestamp
         bot_response = generate_response(user_input)
-        st.session_state.chat_history.append(("bot", bot_response))
+        st.session_state.chat_history.append({
+            "role": "bot", 
+            "message": bot_response, 
+            "time": get_current_time()
+        })
         
         # Reset auto-send flags
         st.session_state.auto_send = False
@@ -197,21 +278,45 @@ def main():
             st.success("✅ ماڈل لوڈ ہو گیا")
         else:
             st.error("❌ ماڈل لوڈ نہیں ہوا")
+        
+        # Display chat statistics
+        st.markdown("---")
+        st.markdown("### 📈 چٹ کی معلومات")
+        total_messages = len(st.session_state.chat_history)
+        user_messages = len([msg for msg in st.session_state.chat_history if msg["role"] == "user"])
+        bot_messages = len([msg for msg in st.session_state.chat_history if msg["role"] == "bot"])
+        
+        st.markdown(f"""
+        <div class="urdu-text">
+        <b>کل پیغامات:</b> {total_messages}<br>
+        <b>آپ کے پیغامات:</b> {user_messages}<br>
+        <b>بوٹ کے پیغامات:</b> {bot_messages}
+        </div>
+        """, unsafe_allow_html=True)
     
     # Main chat area
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        # Chat container
+        # Chat container with header
         st.markdown("### 💬 گفتگو")
-        chat_container = st.container()
         
-        with chat_container:
+        # Create the chat box
+        with st.container():
             st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+            st.markdown('<div class="chat-header urdu-text">💬 گفتگو کا خانہ</div>', unsafe_allow_html=True)
             
-            # Display chat history
-            for role, message in st.session_state.chat_history:
-                display_chat_message(role, message)
+            # Display chat history in reverse order (newest at bottom)
+            if st.session_state.chat_history:
+                for chat in st.session_state.chat_history:
+                    display_chat_message(chat["role"], chat["message"], chat["time"])
+            else:
+                st.markdown(
+                    '<div class="urdu-text" style="text-align: center; color: #666; margin-top: 50px;">'
+                    '👆 نیچے دیے گئے سوالات پر کلک کریں یا اپنا پیغام لکھیں'
+                    '</div>', 
+                    unsafe_allow_html=True
+                )
             
             # Display loading error if any
             if st.session_state.loading_error:
@@ -219,8 +324,10 @@ def main():
             
             st.markdown('</div>', unsafe_allow_html=True)
         
-        # Input area
+        # Input area with better styling
         st.markdown("---")
+        st.markdown("### 📝 نیا پیغام لکھیں")
+        
         col_input, col_send = st.columns([4, 1])
         
         with col_input:
@@ -237,12 +344,22 @@ def main():
         
         # Handle send button
         if send_button and user_input.strip():
-            # Add user message to chat history
-            st.session_state.chat_history.append(("user", user_input.strip()))
+            current_time = get_current_time()
             
-            # Generate and add bot response
+            # Add user message to chat history with timestamp
+            st.session_state.chat_history.append({
+                "role": "user", 
+                "message": user_input.strip(), 
+                "time": current_time
+            })
+            
+            # Generate and add bot response with timestamp
             bot_response = generate_response(user_input.strip())
-            st.session_state.chat_history.append(("bot", bot_response))
+            st.session_state.chat_history.append({
+                "role": "bot", 
+                "message": bot_response, 
+                "time": get_current_time()
+            })
             
             # Clear input and rerun
             st.session_state.suggested_text = ""
@@ -261,7 +378,11 @@ def main():
                     "ہیلو! آج آپ کیسے ہیں؟ میں آپ سے بات کرنے کے لیے تیار ہوں۔"
                 ]
                 welcome_msg = random.choice(welcome_messages)
-                st.session_state.chat_history.append(("bot", welcome_msg))
+                st.session_state.chat_history.append({
+                    "role": "bot", 
+                    "message": welcome_msg, 
+                    "time": get_current_time()
+                })
                 st.rerun()
 
     # Process auto-send if a suggested question was clicked
@@ -271,7 +392,12 @@ def main():
     # Sample conversation starters
     st.markdown("---")
     st.markdown("### 💡 بات چیت شروع کرنے کے لیے تجاویز:")
-    st.markdown('<div class="urdu-text">نیچے دیے گئے سوالات پر کلک کریں اور بوٹ کا جواب دیکھیں</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="urdu-text" style="margin-bottom: 15px;">'
+        'نیچے دیے گئے سوالات پر کلک کریں اور بوٹ کا جواب دیکھیں 👇'
+        '</div>', 
+        unsafe_allow_html=True
+    )
     
     sample_questions = [
         "زندگی بہت مشکل لگ رہی ہے",
@@ -283,7 +409,9 @@ def main():
         "ہیلو کیا حال ہے",
         "تمہارا نام کیا ہے",
         "کیا آج سکول جاؤں گا",
-        "مجھے اردو سیکھنی ہے"
+        "مجھے اردو سیکھنی ہے",
+        "کیا تم مجھ سے پیار کرتے ہو",
+        "تم کیا کر رہے ہو"
     ]
     
     # Display sample questions in a grid with proper click handling
