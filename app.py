@@ -135,18 +135,25 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize session state
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-if 'model_loaded' not in st.session_state:
-    st.session_state.model_loaded = False
-if 'chatbot' not in st.session_state:
-    st.session_state.chatbot = None
-if 'loading_error' not in st.session_state:
-    st.session_state.loading_error = None
-if 'auto_send' not in st.session_state:
-    st.session_state.auto_send = False
-if 'suggested_text' not in st.session_state:
-    st.session_state.suggested_text = ""
+def initialize_session_state():
+    """Initialize all session state variables"""
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+    if 'model_loaded' not in st.session_state:
+        st.session_state.model_loaded = False
+    if 'chatbot' not in st.session_state:
+        st.session_state.chatbot = None
+    if 'loading_error' not in st.session_state:
+        st.session_state.loading_error = None
+    if 'auto_send' not in st.session_state:
+        st.session_state.auto_send = False
+    if 'suggested_text' not in st.session_state:
+        st.session_state.suggested_text = ""
+    if 'initialized' not in st.session_state:
+        st.session_state.initialized = True
+
+# Initialize session state
+initialize_session_state()
 
 def load_chatbot():
     """Load the chatbot model"""
@@ -210,7 +217,6 @@ def handle_suggested_question(question):
     """Handle when a suggested question is clicked"""
     st.session_state.suggested_text = question
     st.session_state.auto_send = True
-    st.rerun()
 
 def process_auto_send():
     """Process auto-send when suggested question is clicked"""
@@ -236,16 +242,121 @@ def process_auto_send():
         # Reset auto-send flags
         st.session_state.auto_send = False
         st.session_state.suggested_text = ""
+
+def display_chat_history():
+    """Display the chat history in the chat container"""
+    # Create the chat box
+    st.markdown("### 💬 گفتگو")
+    
+    with st.container():
+        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chat-header urdu-text">💬 گفتگو کا خانہ</div>', unsafe_allow_html=True)
         
-        # Rerun to show the new messages
+        # Display chat history
+        if st.session_state.chat_history:
+            for chat in st.session_state.chat_history:
+                display_chat_message(chat["role"], chat["message"], chat["time"])
+        else:
+            st.markdown(
+                '<div class="urdu-text" style="text-align: center; color: #666; margin-top: 50px;">'
+                '👆 نیچے دیے گئے سوالات پر کلک کریں یا اپنا پیغام لکھیں'
+                '</div>', 
+                unsafe_allow_html=True
+            )
+        
+        # Display loading error if any
+        if st.session_state.loading_error:
+            st.error(f"لوڈنگ میں خرابی: {st.session_state.loading_error}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+def handle_user_input():
+    """Handle user input from text box"""
+    st.markdown("### 📝 نیا پیغام لکھیں")
+    
+    col_input, col_send = st.columns([4, 1])
+    
+    with col_input:
+        user_input = st.text_input(
+            "اپنا پیغام یہاں لکھیں:",
+            placeholder="اردو میں لکھیں...",
+            key="user_input",
+            label_visibility="collapsed",
+            value=st.session_state.suggested_text if st.session_state.auto_send else ""
+        )
+    
+    with col_send:
+        send_button = st.button("📤 بھیجیں", use_container_width=True)
+    
+    # Handle send button
+    if send_button and user_input.strip():
+        current_time = get_current_time()
+        
+        # Add user message to chat history with timestamp
+        st.session_state.chat_history.append({
+            "role": "user", 
+            "message": user_input.strip(), 
+            "time": current_time
+        })
+        
+        # Generate and add bot response with timestamp
+        bot_response = generate_response(user_input.strip())
+        st.session_state.chat_history.append({
+            "role": "bot", 
+            "message": bot_response, 
+            "time": get_current_time()
+        })
+        
+        # Clear input and suggested text
+        st.session_state.suggested_text = ""
+        st.session_state.auto_send = False
+        
+        # Rerun to update the display
         st.rerun()
 
-def main():
-    # Header
-    st.markdown('<h1 class="main-header urdu-text">💬 اردو چیٹ بوٹ</h1>', 
-               unsafe_allow_html=True)
+def display_sample_questions():
+    """Display sample conversation starters"""
+    st.markdown("---")
+    st.markdown("### 💡 بات چیت شروع کرنے کے لیے تجاویز:")
+    st.markdown(
+        '<div class="urdu-text" style="margin-bottom: 15px;">'
+        'نیچے دیے گئے سوالات پر کلک کریں اور بوٹ کا جواب دیکھیں 👇'
+        '</div>', 
+        unsafe_allow_html=True
+    )
     
-    # Sidebar for controls
+    sample_questions = [
+        "زندگی بہت مشکل لگ رہی ہے",
+        "تم ناراض ہو",
+        "کیا تم میری مدد کر سکتے ہو",
+        "آج موسم کیسا ہے",
+        "تم کہاں رہتے ہو",
+        "تم نے یونیورسٹی کا نتیجہ آ گیا",
+        "ہیلو کیا حال ہے",
+        "تمہارا نام کیا ہے",
+        "کیا آج سکول جاؤں گا",
+        "مجھے اردو سیکھنی ہے",
+        "کیا تم مجھ سے پیار کرتے ہو",
+        "تم کیا کر رہے ہو"
+    ]
+    
+    # Display sample questions in a grid with proper click handling
+    cols = st.columns(3)
+    for idx, question in enumerate(sample_questions):
+        with cols[idx % 3]:
+            # Use a unique key for each button
+            if st.button(
+                question, 
+                key=f"sample_{idx}", 
+                use_container_width=True,
+                on_click=handle_suggested_question,
+                args=(question,)
+            ):
+                # This will be handled by the callback function
+                pass
+
+def display_sidebar():
+    """Display sidebar content"""
     with st.sidebar:
         st.markdown("### ⚙️ کنٹرولز")
         
@@ -293,84 +404,31 @@ def main():
         <b>بوٹ کے پیغامات:</b> {bot_messages}
         </div>
         """, unsafe_allow_html=True)
+
+def main():
+    # Header
+    st.markdown('<h1 class="main-header urdu-text">💬 اردو چیٹ بوٹ</h1>', 
+               unsafe_allow_html=True)
+    
+    # Display sidebar
+    display_sidebar()
     
     # Main chat area
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        # Chat container with header
-        st.markdown("### 💬 گفتگو")
+        # Display chat history
+        display_chat_history()
         
-        # Create the chat box
-        with st.container():
-            st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-            st.markdown('<div class="chat-header urdu-text">💬 گفتگو کا خانہ</div>', unsafe_allow_html=True)
-            
-            # Display chat history in reverse order (newest at bottom)
-            if st.session_state.chat_history:
-                for chat in st.session_state.chat_history:
-                    display_chat_message(chat["role"], chat["message"], chat["time"])
-            else:
-                st.markdown(
-                    '<div class="urdu-text" style="text-align: center; color: #666; margin-top: 50px;">'
-                    '👆 نیچے دیے گئے سوالات پر کلک کریں یا اپنا پیغام لکھیں'
-                    '</div>', 
-                    unsafe_allow_html=True
-                )
-            
-            # Display loading error if any
-            if st.session_state.loading_error:
-                st.error(f"لوڈنگ میں خرابی: {st.session_state.loading_error}")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Input area with better styling
-        st.markdown("---")
-        st.markdown("### 📝 نیا پیغام لکھیں")
-        
-        col_input, col_send = st.columns([4, 1])
-        
-        with col_input:
-            user_input = st.text_input(
-                "اپنا پیغام یہاں لکھیں:",
-                placeholder="اردو میں لکھیں...",
-                key="user_input",
-                label_visibility="collapsed",
-                value=st.session_state.suggested_text if st.session_state.auto_send else ""
-            )
-        
-        with col_send:
-            send_button = st.button("📤 بھیجیں", use_container_width=True)
-        
-        # Handle send button
-        if send_button and user_input.strip():
-            current_time = get_current_time()
-            
-            # Add user message to chat history with timestamp
-            st.session_state.chat_history.append({
-                "role": "user", 
-                "message": user_input.strip(), 
-                "time": current_time
-            })
-            
-            # Generate and add bot response with timestamp
-            bot_response = generate_response(user_input.strip())
-            st.session_state.chat_history.append({
-                "role": "bot", 
-                "message": bot_response, 
-                "time": get_current_time()
-            })
-            
-            # Clear input and rerun
-            st.session_state.suggested_text = ""
-            st.rerun()
+        # Handle user input
+        handle_user_input()
     
     # Load model on first run
     if not st.session_state.model_loaded and not st.session_state.loading_error:
         if load_chatbot():
             st.success("✅ اردو چیٹ بوٹ تیار ہے! اب آپ بات چیت شروع کر سکتے ہیں۔")
             
-            # Add welcome message
+            # Add welcome message if no chat history exists
             if not st.session_state.chat_history:
                 welcome_messages = [
                     "ہیلو! میں اردو چیٹ بوٹ ہوں۔ آپ کیسے ہیں؟",
@@ -388,46 +446,11 @@ def main():
     # Process auto-send if a suggested question was clicked
     if st.session_state.auto_send:
         process_auto_send()
+        # Rerun to update the display after auto-send
+        st.rerun()
 
-    # Sample conversation starters
-    st.markdown("---")
-    st.markdown("### 💡 بات چیت شروع کرنے کے لیے تجاویز:")
-    st.markdown(
-        '<div class="urdu-text" style="margin-bottom: 15px;">'
-        'نیچے دیے گئے سوالات پر کلک کریں اور بوٹ کا جواب دیکھیں 👇'
-        '</div>', 
-        unsafe_allow_html=True
-    )
-    
-    sample_questions = [
-        "زندگی بہت مشکل لگ رہی ہے",
-        "تم ناراض ہو",
-        "کیا تم میری مدد کر سکتے ہو",
-        "آج موسم کیسا ہے",
-        "تم کہاں رہتے ہو",
-        "تم نے یونیورسٹی کا نتیجہ آ گیا",
-        "ہیلو کیا حال ہے",
-        "تمہارا نام کیا ہے",
-        "کیا آج سکول جاؤں گا",
-        "مجھے اردو سیکھنی ہے",
-        "کیا تم مجھ سے پیار کرتے ہو",
-        "تم کیا کر رہے ہو"
-    ]
-    
-    # Display sample questions in a grid with proper click handling
-    cols = st.columns(3)
-    for idx, question in enumerate(sample_questions):
-        with cols[idx % 3]:
-            # Use a unique key for each button
-            if st.button(
-                question, 
-                key=f"sample_{idx}", 
-                use_container_width=True,
-                on_click=handle_suggested_question,
-                args=(question,)
-            ):
-                # This will be handled by the callback function
-                pass
+    # Display sample questions
+    display_sample_questions()
 
 if __name__ == "__main__":
     main()
