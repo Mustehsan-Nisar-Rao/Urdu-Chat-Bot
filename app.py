@@ -71,16 +71,6 @@ st.markdown("""
         direction: rtl;
         box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
     }
-    .chat-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 15px;
-        border-radius: 15px 15px 0 0;
-        text-align: center;
-        margin: -20px -20px 20px -20px;
-        font-weight: bold;
-        font-size: 1.2rem;
-    }
     .stButton button {
         border-radius: 20px;
         height: 2.8rem;
@@ -108,13 +98,6 @@ st.markdown("""
         background: linear-gradient(135deg, #fed6e3 0%, #a8edea 100%);
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-    .input-box {
-        background: white;
-        border: 2px solid #667eea;
-        border-radius: 25px;
-        padding: 10px 20px;
-        margin-top: 10px;
     }
     /* Scrollbar styling */
     .chat-container::-webkit-scrollbar {
@@ -245,12 +228,9 @@ def process_auto_send():
 
 def display_chat_history():
     """Display the chat history in the chat container"""
-    # Create the chat box
-    st.markdown("### 💬 گفتگو")
-    
+    # Create the chat container
     with st.container():
         st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        st.markdown('<div class="chat-header urdu-text">💬 گفتگو کا خانہ</div>', unsafe_allow_html=True)
         
         # Display chat history
         if st.session_state.chat_history:
@@ -263,10 +243,6 @@ def display_chat_history():
                 '</div>', 
                 unsafe_allow_html=True
             )
-        
-        # Display loading error if any
-        if st.session_state.loading_error:
-            st.error(f"لوڈنگ میں خرابی: {st.session_state.loading_error}")
         
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -417,7 +393,7 @@ def main():
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        # Display chat history
+        # Display chat history directly
         display_chat_history()
         
         # Handle user input
@@ -451,6 +427,10 @@ def main():
 
     # Display sample questions
     display_sample_questions()
+
+    # Display loading error if any
+    if st.session_state.loading_error:
+        st.error(f"لوڈنگ میں خرابی: {st.session_state.loading_error}")
 
 if __name__ == "__main__":
     main()
