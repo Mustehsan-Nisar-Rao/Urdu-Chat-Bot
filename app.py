@@ -25,42 +25,58 @@ st.markdown("""
         font-family: 'Noto Sans Arabic', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         font-size: 1.1rem;
         line-height: 1.6;
+        direction: rtl;
+        text-align: right;
     }
     .user-message {
         background-color: #e3f2fd;
-        padding: 12px;
-        border-radius: 15px;
+        padding: 12px 18px;
+        border-radius: 18px;
         margin: 8px 0;
         border: 1px solid #90caf9;
-        max-width: 80%;
+        max-width: 70%;
         margin-left: auto;
+        margin-right: 0;
+        direction: rtl;
     }
     .bot-message {
         background-color: #f5f5f5;
-        padding: 12px;
-        border-radius: 15px;
+        padding: 12px 18px;
+        border-radius: 18px;
         margin: 8px 0;
         border: 1px solid #e0e0e0;
-        max-width: 80%;
+        max-width: 70%;
         margin-right: auto;
+        margin-left: 0;
+        direction: rtl;
     }
     .chat-container {
-        height: 600px;
+        height: 500px;
         overflow-y: auto;
         padding: 20px;
         border: 2px solid #e0e0e0;
-        border-radius: 10px;
+        border-radius: 15px;
         margin-bottom: 20px;
         background-color: #fafafa;
+        direction: rtl;
     }
     .stButton button {
-        width: 100%;
         border-radius: 20px;
-        height: 3rem;
-        font-size: 1.1rem;
+        height: 2.8rem;
+        font-size: 1rem;
     }
-    .sidebar .sidebar-content {
-        background-color: #f0f2f6;
+    .sample-question {
+        background-color: #f0f8ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 10px;
+        padding: 8px 12px;
+        margin: 5px;
+        cursor: pointer;
+        text-align: center;
+        direction: rtl;
+    }
+    .sample-question:hover {
+        background-color: #e6f2ff;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -72,21 +88,20 @@ if 'model_loaded' not in st.session_state:
     st.session_state.model_loaded = False
 if 'chatbot' not in st.session_state:
     st.session_state.chatbot = None
+if 'loading_error' not in st.session_state:
+    st.session_state.loading_error = None
 
 def load_chatbot():
     """Load the chatbot model"""
     try:
-        # Replace these URLs with your actual GitHub URLs
-        WEIGHTS_URL = "https://github.com/yourusername/yourrepo/releases/download/v1.0/model_weights.pth"
-        VOCAB_URL = "https://github.com/yourusername/yourrepo/raw/main/urdu_span_spm.model"
-        
         with st.spinner('🔄 اردو چیٹ بوٹ لوڈ ہو رہی ہے... براہ کرم انتظار کریں'):
-            chatbot = load_model_and_tokenizer(WEIGHTS_URL, VOCAB_URL)
+            chatbot = load_model_and_tokenizer()
             st.session_state.chatbot = chatbot
             st.session_state.model_loaded = True
+            st.session_state.loading_error = None
         return True
     except Exception as e:
-        st.error(f"ماڈل لوڈ کرنے میں خرابی: {str(e)}")
+        st.session_state.loading_error = str(e)
         return False
 
 def generate_response(user_input):
@@ -136,31 +151,46 @@ def main():
         st.markdown("---")
         st.markdown("### ℹ️ ہدایات")
         st.markdown("""
+        <div class="urdu-text">
         - اردو میں لکھیں
         - عام گفتگو کے جملے استعمال کریں
         - مختصر اور واضح بات کریں
         - بوٹ کو جواب دینے کے لیے وقت دیں
-        """)
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Display model status
+        st.markdown("---")
+        st.markdown("### 📊 سسٹم کی حالت")
+        if st.session_state.model_loaded:
+            st.success("✅ ماڈل لوڈ ہو گیا")
+        else:
+            st.error("❌ ماڈل لوڈ نہیں ہوا")
     
     # Main chat area
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
         # Chat container
+        st.markdown("### 💬 گفتگو")
         chat_container = st.container()
         
         with chat_container:
             st.markdown('<div class="chat-container">', unsafe_allow_html=True)
             
-            # Display chat history
+            # Display chat history in reverse order (newest at bottom)
             for role, message in st.session_state.chat_history:
                 display_chat_message(role, message)
+            
+            # Display loading error if any
+            if st.session_state.loading_error:
+                st.error(f"لوڈنگ میں خرابی: {st.session_state.loading_error}")
             
             st.markdown('</div>', unsafe_allow_html=True)
         
         # Input area
         st.markdown("---")
-        col_input, col_send = st.columns([3, 1])
+        col_input, col_send = st.columns([4, 1])
         
         with col_input:
             user_input = st.text_input(
@@ -186,7 +216,7 @@ def main():
             st.rerun()
     
     # Load model on first run
-    if not st.session_state.model_loaded:
+    if not st.session_state.model_loaded and not st.session_state.loading_error:
         if load_chatbot():
             st.success("✅ اردو چیٹ بوٹ تیار ہے! اب آپ بات چیت شروع کر سکتے ہیں۔")
             
@@ -199,8 +229,7 @@ def main():
                 ]
                 welcome_msg = random.choice(welcome_messages)
                 st.session_state.chat_history.append(("bot", welcome_msg))
-        else:
-            st.error("❌ ماڈل لوڈ کرنے میں ناکامی۔ براہ کرم صفحہ ریفریش کریں۔")
+                st.rerun()
 
     # Sample conversation starters
     st.markdown("---")
@@ -208,16 +237,19 @@ def main():
     
     sample_questions = [
         "ہیلو کیا حال ہے",
-        "آج موسم کیسا ہے",
         "تمہارا نام کیا ہے",
         "کیا تم میری مدد کر سکتے ہو",
+        "آج موسم کیسا ہے",
+        "تم کہاں رہتے ہو",
         "اردو سیکھنے کے لیے تجاویز دو"
     ]
     
-    cols = st.columns(len(sample_questions))
+    # Display sample questions in a grid
+    cols = st.columns(3)
     for idx, question in enumerate(sample_questions):
-        with cols[idx]:
-            if st.button(question, key=f"sample_{idx}"):
+        with cols[idx % 3]:
+            if st.button(question, key=f"sample_{idx}", use_container_width=True):
+                # Add sample question to input
                 st.session_state.user_input = question
                 st.rerun()
 
