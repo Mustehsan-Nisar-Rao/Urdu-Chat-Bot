@@ -247,29 +247,35 @@ def download_file(url, local_filename):
     except Exception as e:
         raise Exception(f"Error downloading {url}: {str(e)}")
 
-def load_model_and_tokenizer(weights_url, vocab_url):
+def load_model_and_tokenizer():
     """Load model and tokenizer from GitHub URLs"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+    
+    # Your actual GitHub URLs
+    VOCAB_URL = "https://github.com/Mustehsan-Nisar-Rao/Urdu-Chat-Bot/raw/main/urdu_span_spm.model"
+    WEIGHTS_URL = "https://github.com/Mustehsan-Nisar-Rao/Urdu-Chat-Bot/releases/download/v.1/best_finetuned_urdu_chatbot.pth"
     
     # Create temporary directory for files
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Download weights file
-        print("Downloading model weights...")
-        weights_path = os.path.join(temp_dir, "model_weights.pth")
-        download_file(weights_url, weights_path)
-        
         # Download vocab file
         print("Downloading tokenizer model...")
         vocab_path = os.path.join(temp_dir, "urdu_span_spm.model")
-        download_file(vocab_url, vocab_path)
+        download_file(VOCAB_URL, vocab_path)
+        
+        # Download weights file
+        print("Downloading model weights...")
+        weights_path = os.path.join(temp_dir, "model_weights.pth")
+        download_file(WEIGHTS_URL, weights_path)
         
         # Load tokenizer
         print("Loading tokenizer...")
         tokenizer = spm.SentencePieceProcessor()
         tokenizer.load(vocab_path)
         vocab_size = tokenizer.get_piece_size()
+        print(f"Vocabulary size: {vocab_size}")
         
-        # Model configuration (adjust based on your training config)
+        # Model configuration based on your training
         config = {
             'd_model': 512,
             'num_layers': 4,
@@ -310,14 +316,17 @@ def load_model_and_tokenizer(weights_url, vocab_url):
 
 # For testing the model directly
 if __name__ == "__main__":
-    # Example usage - replace with your actual GitHub URLs
-    WEIGHTS_URL = "https://github.com/yourusername/yourrepo/releases/download/v1.0/model_weights.pth"
-    VOCAB_URL = "https://github.com/yourusername/yourrepo/raw/main/urdu_span_spm.model"
-    
-    chatbot = load_model_and_tokenizer(WEIGHTS_URL, VOCAB_URL)
+    chatbot = load_model_and_tokenizer()
     
     # Test the chatbot
-    test_input = "ہیلو کیا حال ہے"
-    response = chatbot.generate_response(test_input)
-    print(f"Input: {test_input}")
-    print(f"Response: {response}")
+    test_inputs = [
+        "ہیلو کیا حال ہے",
+        "تمہارا نام کیا ہے",
+        "کیا تم میری مدد کر سکتے ہو"
+    ]
+    
+    for test_input in test_inputs:
+        response = chatbot.generate_response(test_input)
+        print(f"Input: {test_input}")
+        print(f"Response: {response}")
+        print("-" * 50)
