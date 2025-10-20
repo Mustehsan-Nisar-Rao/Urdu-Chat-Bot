@@ -60,17 +60,6 @@ st.markdown("""
         margin-top: 5px;
         text-align: left;
     }
-    .chat-container {
-        height: 500px;
-        overflow-y: auto;
-        padding: 20px;
-        border: 2px solid #e0e0e0;
-        border-radius: 15px;
-        margin-bottom: 20px;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        direction: rtl;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-    }
     .stButton button {
         border-radius: 20px;
         height: 2.8rem;
